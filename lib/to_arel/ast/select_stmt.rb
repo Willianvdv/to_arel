@@ -1,21 +1,21 @@
 module ToArel
   module Ast
+    #:nodoc:
     class SelectStmt
       include Contracts::Core
       include Contracts::Builtin
 
-      attr_reader :targetList
+      attr_reader :target_list
 
-      Type = {
-        "SelectStmt" => {
-          "targetList" => Array
+      TYPE = {
+        'SelectStmt' => {
+          'targetList' => Array
         }
-      }
+      }.freeze
 
-      Contract Type => nil
+      Contract TYPE => Any
       def initialize(data)
-        @targetList = data['SelectStmt']['targetList']
-        nil
+        @target_list = data['SelectStmt']['targetList']
       end
     end
   end

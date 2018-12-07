@@ -1,17 +1,17 @@
 module ToArel
   module Ast
+    #:nodoc:
     class RawStmt
       include Contracts::Core
       include Contracts::Builtin
 
       attr_reader :stmt
 
-      Type = StrictHash[{ "RawStmt" => { "stmt" => Ast::SelectStmt::Type } }]
+      TYPE = StrictHash[{ 'RawStmt' => { 'stmt' => Ast::SelectStmt::TYPE } }]
 
-      Contract Type => nil
+      Contract TYPE => Any
       def initialize(data)
         @stmt = SelectStmt.new data['RawStmt']['stmt']
-        nil
       end
     end
   end
