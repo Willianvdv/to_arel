@@ -32,7 +32,7 @@ module ToArel
   def self.parse_sql(sql)
     a = PgQuery.parse(sql).tree
     puts a
-    binding.pry
+    # binding.pry
     a
   end
 
