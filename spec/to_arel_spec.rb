@@ -1,6 +1,4 @@
 require 'support/fake_record'
-
-require 'support/fake_record'
 Arel::Table.engine = FakeRecord::Base.new
 
 RSpec.describe ToArel do
@@ -28,9 +26,16 @@ RSpec.describe ToArel do
           expect(ToArel.parse(given_sql).to_sql).to eq expected_sql
         end
 
-        it 'parses a query with an aggrgate' do
+        it 'parses a query with an aggregate' do
           given_sql = 'SELECT count(id) FROM users'
           expected_sql = 'SELECT count(id) FROM "users"'
+
+          expect(ToArel.parse(given_sql).to_sql).to eq expected_sql
+        end
+
+        it 'parses a query with an aggrgate' do
+          given_sql = 'SELECT id FROM photos INNER JOIN users ON photos.user_id = users.id'
+          expected_sql = 'SELECT id FROM "photos" INNER JOIN "users" ON "photos"."user_id" = "users"."id"'
 
           expect(ToArel.parse(given_sql).to_sql).to eq expected_sql
         end
