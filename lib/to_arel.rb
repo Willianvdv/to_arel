@@ -38,6 +38,8 @@ module ToArel
 
     table = table.first
 
+    binding.pry
+
     table = Arel::Table.new(table.fetch('RangeVar').fetch('relname'))
 
     Arel::SelectManager.new table
