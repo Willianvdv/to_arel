@@ -1,8 +1,3 @@
-require 'support/fake_record'
-
-require 'support/fake_record'
-Arel::Table.engine = FakeRecord::Base.new
-
 RSpec.describe ToArel do
   it 'has a version number' do
     expect(ToArel::VERSION).not_to be nil
@@ -21,18 +16,15 @@ RSpec.describe ToArel do
       end
 
       describe 'to arel and back' do
-        it 'parses a simple query' do
-          given_sql = 'SELECT id FROM users'
-          expected_sql = 'SELECT id FROM "users"'
+        it 'binding' do
+          visitor = Arel::Visitors::MySQL.new connection
+          engine = OpenStruct.new(connection: OpenStruct.new(visitor: visitor))
 
-          expect(ToArel.parse(given_sql).to_sql).to eq expected_sql
-        end
+          Arel::Table.engine = engine
 
-        it 'parses a query with an aggrgate' do
-          given_sql = 'SELECT count(id) FROM users'
-          expected_sql = 'SELECT count(id) FROM "users"'
+          x = ToArel.parse('SELECT 1 FROM posts')
 
-          expect(ToArel.parse(given_sql).to_sql).to eq expected_sql
+          binding.pry
         end
       end
     end
