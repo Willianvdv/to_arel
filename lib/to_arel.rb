@@ -8,60 +8,42 @@ end
 
 #:nodoc:
 module ToArel
-  module Nodes
-    class Node; end
-
-    class ColumnRef < Node
-      # https://doxygen.postgresql.org/structColumnRef.html
-
-      def initialize(fields:, location:)
-        @fields = fields # field names (Value strings) or A_Star
-        @location = location
-      end
-
-      def to_arel
-        # binding.pry
-
-        # TODO: CHECK IF THE FIELD IS A STRING
-        # ? Arel::Attributes.for(X)
-        # Arel::Attributes::String.new nil, 'id'
-
-        Arel.star
-      end
+  def self.to_arel(tree = @tree)
+    tree.map do |item|
+      Arelifier.from(item)
     end
   end
 
-  class ResTarget
-    # https://doxygen.postgresql.org/structResTarget.html
+  module Arelifier
+    extend self
 
-    def initialize(name: nil, indirection: nil, val: nil, location:)
-      @name = name
-      @indirection = indirection
-      @location = location
+    def from(item)
+      arel_item(item)
+    end
 
-      @val = val.map do |k, v|
-        # TODO: CHECK IF K == COLUMNREF
-        Nodes::ColumnRef.new **symbolize_keys(v)
+    def arel_item(item, context = nil)
+      return if item.nil?
+      # return item if item.is_a?(Integer)
+
+      type = item.keys[0]
+      node = item.values[0]
+
+      case type
+      when PgQuery::RAW_STMT
+        arel_raw_stmt(node)
+      when PgQuery::SELECT_STMT
+        arel_select(node)
+      else
+        puts "----> I DO NOT KNOW -> type: #{type}; node: #{node}"
       end
     end
 
-    def to_arel
-      @val.map &:to_arel
-    end
-  end
-
-  class RangeVar
-    # https://doxygen.postgresql.org/structRangeVar.html
-
-    def initialize(relname:, inh:, relpersistence:, location:)
-      @relname = relname
-      @inh = inh
-      @relpersistence = relpersistence
-      @location = location
+    def arel_select(node)
+      binding.pry
     end
 
-    def to_arel
-      Arel::Table.new @relname
+    def arel_raw_stmt(node)
+      arel_item(node[PgQuery::STMT_FIELD])
     end
   end
 
@@ -70,16 +52,19 @@ module ToArel
 
   def self.parse(sql)
     tree = PgQuery.parse(sql).tree
+    puts to_arel(tree)
 
-    raise 'cannot process more than 1 statement' if tree.length > 1
 
-    statement = tree.first
-      .fetch('RawStmt')
-      .fetch('stmt')
 
-    raise 'dunno how to handle more than 1 statement' if statement.keys.length > 1
+    # raise 'cannot process more than 1 statement' if tree.length > 1
 
-    manager_from_statement statement
+    # statement = tree.first
+    #   .fetch('RawStmt')
+    #   .fetch('stmt')
+
+    # raise 'dunno how to handle more than 1 statement' if statement.keys.length > 1
+
+    # manager_from_statement statement
   end
 
   def self.manager_from_statement(statement)
@@ -95,19 +80,20 @@ module ToArel
   end
 
   def self.create_select_manager(ast)
-    from_clauses = ast.fetch('fromClause')
-    raise MultiTableError, 'Can not handle multiple tables' if from_clauses.length > 1
-    from_clause = from_clauses.first
-    table = RangeVar.new(**symbolize_keys(from_clause.fetch('RangeVar'))).to_arel
 
-    puts ast
+    # from_clauses = ast.fetch('fromClause')
+    # raise MultiTableError, 'Can not handle multiple tables' if from_clauses.length > 1
+    # from_clause = from_clauses.first
+    # table = RangeVar.new(**symbolize_keys(from_clause.fetch('RangeVar'))).to_arel
 
-    target_lists = ast.fetch('targetList').map do |target_list|
-      ResTarget.new(**symbolize_keys(target_list.fetch('ResTarget'))).to_arel
-    end
+    # puts ast
 
-    a = Arel::SelectManager.new table
-    b = a.project(target_lists)
-    binding.pry
+    # target_lists = ast.fetch('targetList').map do |target_list|
+    #   ResTarget.new(**symbolize_keys(target_list.fetch('ResTarget'))).to_arel
+    # end
+
+    # a = Arel::SelectManager.new table
+    # b = a.project(target_lists)
+    # binding.pry
   end
 end
