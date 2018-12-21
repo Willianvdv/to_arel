@@ -44,13 +44,18 @@ module ToArel
       visit *klass_and_attributes(attributes['val'])
     end
 
+    def visit_SubLink(klass, attributes)
+      puts klass
+      puts attributes
+      puts 'PLZ IMPLEMENT SUB LINK'
+    end
+
     def visit_RangeVar(klass, attributes)
       # TODO: I'm not sure if RangeVar should already create a Table
       Arel::Table.new attributes['relname']
     end
 
     def visit_JoinExpr(klass, attributes)
-      binding.pry
     end
 
     def visit_FuncCall(klass, attributes)

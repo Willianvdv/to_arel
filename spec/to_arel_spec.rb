@@ -33,6 +33,13 @@ RSpec.describe ToArel do
           expect(ToArel.parse(given_sql).to_sql).to eq expected_sql
         end
 
+        it 'parses a query with a subquery' do
+          given_sql = 'SELECT id, (SELECT id FROM users LIMIT 1) FROM photos'
+          expected_sql = 'SELECT id FROM "photos" INNER JOIN "users" ON "photos"."user_id" = "users"."id"'
+
+          expect(ToArel.parse(given_sql).to_sql).to eq expected_sql
+        end
+
         it 'parses a query with an aggrgate' do
           given_sql = 'SELECT id FROM photos INNER JOIN users ON photos.user_id = users.id'
           expected_sql = 'SELECT id FROM "photos" INNER JOIN "users" ON "photos"."user_id" = "users"."id"'
