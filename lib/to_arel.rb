@@ -19,6 +19,7 @@ module ToArel
 
     def visit(klass, attributes)
       dispatch_method = "visit_#{klass}"
+      puts "Visiting #{dispatch_method}"
       send dispatch_method, klass, attributes
     end
 
@@ -55,7 +56,36 @@ module ToArel
       Arel::Table.new attributes['relname']
     end
 
+    def visit_A_Expr(klass, attributes)
+      puts 'IMPLEMENT ME'
+      puts klass
+      puts attributes
+
+    end
+
     def visit_JoinExpr(klass, attributes)
+      # case node['jointype']
+      # when 0
+      #   if node['isNatural']
+      #     output << 'NATURAL'
+      #   elsif node['quals'].nil? && node['usingClause'].nil?
+      #     output << 'CROSS'
+      #   end
+      # when 1
+      #   output << 'LEFT'
+      # when 2
+      #   output << 'FULL'
+      # when 3
+      #   output << 'RIGHT'
+      # end
+      larg = visit(*klass_and_attributes(attributes['larg']))
+      rarg = visit(*klass_and_attributes(attributes['rarg']))
+
+      quals = visit(*klass_and_attributes(attributes['quals']))
+
+      puts 'MERGE EVERYTHNIG TOGHETER'
+
+      Arel::Nodes::OuterJoin.new larg, rarg
     end
 
     def visit_FuncCall(klass, attributes)
@@ -93,6 +123,7 @@ module ToArel
 
   def self.parse(sql)
     tree = PgQuery.parse(sql).tree
+    puts tree
 
     Visitor.new.accept(tree.first) # DUNNO Y .first
   end
@@ -100,6 +131,7 @@ module ToArel
   def self.manager_from_statement(statement)
     type = statement.keys.first
     ast = statement[type]
+
 
     case type
     when 'SelectStmt'
