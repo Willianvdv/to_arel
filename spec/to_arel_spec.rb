@@ -20,7 +20,7 @@ RSpec.describe ToArel do
 
       describe 'to arel and back' do
         it 'parses a simple query' do
-          given_sql = 'SELECT users.id, users.name FROM users'
+          given_sql = 'SELECT id FROM users'
           expected_sql = 'SELECT id FROM "users"'
 
           expect(ToArel.parse(given_sql).to_sql).to eq expected_sql

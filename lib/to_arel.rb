@@ -8,42 +8,65 @@ end
 
 #:nodoc:
 module ToArel
-  def self.to_arel(tree = @tree)
-    tree.map do |item|
-      Arelifier.from(item)
-    end
-  end
+  class UnboundColumnReference < ::Arel::Nodes::SqlLiteral; end
 
-  module Arelifier
-    extend self
-
-    def from(item)
-      arel_item(item)
+  class Visitor
+    def accept(object)
+      visit *klass_and_attributes(object)
     end
 
-    def arel_item(item, context = nil)
-      return if item.nil?
-      # return item if item.is_a?(Integer)
+    private
 
-      type = item.keys[0]
-      node = item.values[0]
+    def visit(klass, attributes)
+      dispatch_method = "visit_#{klass}"
+      send dispatch_method, klass, attributes
+    end
 
-      case type
-      when PgQuery::RAW_STMT
-        arel_raw_stmt(node)
-      when PgQuery::SELECT_STMT
-        arel_select(node)
-      else
-        puts "----> I DO NOT KNOW -> type: #{type}; node: #{node}"
+    def klass_and_attributes(object)
+      [object.keys.first, object.values.first]
+    end
+
+    private
+
+    def visit_String(klass, attributes)
+      attributes['str']
+    end
+
+    def visit_ColumnRef(klass, attributes)
+      UnboundColumnReference.new(
+        attributes['fields'].map do |field|
+          visit *klass_and_attributes(field)
+        end.join('.') # TODO: Join . might be a poor assumption
+      )
+    end
+
+    def visit_ResTarget(klass, attributes)
+      visit *klass_and_attributes(attributes['val'])
+    end
+
+    def visit_RangeVar(klass, attributes)
+      # TODO: I'm not sure if RangeVar should already create a Table
+      Arel::Table.new attributes['relname']
+    end
+
+    def visit_SelectStmt(klass, attributes)
+      froms = if (from_clauses = attributes['fromClause'])
+        from_clauses.map { |from_clause| visit *klass_and_attributes(from_clause) }
       end
+
+      targets = if (target_list = attributes['targetList'])
+        target_list.map { |target| visit *klass_and_attributes(target) }
+      end
+
+      select_manager = Arel::SelectManager.new(froms.first) # TODO: multi-from is goneraz
+      select_manager.projections = targets
+      select_manager
     end
 
-    def arel_select(node)
-      binding.pry
-    end
-
-    def arel_raw_stmt(node)
-      arel_item(node[PgQuery::STMT_FIELD])
+    def visit_RawStmt(klass, attributes)
+      if (stmt = attributes['stmt'])
+        visit *klass_and_attributes(stmt)
+      end
     end
   end
 
@@ -52,19 +75,8 @@ module ToArel
 
   def self.parse(sql)
     tree = PgQuery.parse(sql).tree
-    puts to_arel(tree)
 
-
-
-    # raise 'cannot process more than 1 statement' if tree.length > 1
-
-    # statement = tree.first
-    #   .fetch('RawStmt')
-    #   .fetch('stmt')
-
-    # raise 'dunno how to handle more than 1 statement' if statement.keys.length > 1
-
-    # manager_from_statement statement
+    Visitor.new.accept(tree.first) # DUNNO Y .first
   end
 
   def self.manager_from_statement(statement)
