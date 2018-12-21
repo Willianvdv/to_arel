@@ -49,6 +49,17 @@ module ToArel
       Arel::Table.new attributes['relname']
     end
 
+    def visit_JoinExpr(klass, attributes)
+      binding.pry
+    end
+
+    def visit_FuncCall(klass, attributes)
+      args = attributes['args'].map { |arg| visit(*klass_and_attributes(arg)) }
+
+      # TODO: Everything is a count :)
+      Arel::Nodes::Count.new args
+    end
+
     def visit_SelectStmt(klass, attributes)
       froms = if (from_clauses = attributes['fromClause'])
         from_clauses.map { |from_clause| visit *klass_and_attributes(from_clause) }
@@ -58,7 +69,9 @@ module ToArel
         target_list.map { |target| visit *klass_and_attributes(target) }
       end
 
-      select_manager = Arel::SelectManager.new(froms.first) # TODO: multi-from is goneraz
+      from, *joins = froms
+
+      select_manager = Arel::SelectManager.new(from) # TODO: multi-from is goneraz
       select_manager.projections = targets
       select_manager
     end
